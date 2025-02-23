@@ -215,13 +215,6 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
-local zls_dir = '/Users/bartsky/dev/tools/zls'
-local zls_bin = '/zig-out/bin/'
-
-local address = 'https://releases.zigtools.org/v1/zls/select-version?zig_version={version}&compatibility=full'
-
-local zls_path = zls_dir .. zls_bin .. 'zls'
-
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -651,37 +644,7 @@ require('lazy').setup({
           },
         },
 
-        zls = {
-          cmd = { zls_path },
-          root_dir = zls_dir .. zls_bin,
-          filetypes = { 'zig', 'zir' },
-          on_init = function()
-            local zig_version = vim.fn.system 'zig version'
-            -- print('zig_version in system: ', zig_version)
-            local zls_resp = vim.fn.system('wget -qO- "' .. string.gsub(address, '{version}', zig_version) .. '"')
-
-            if vim.fn.isdirectory(zls_dir) == false then
-              os.execute('git clone https://github.com/zigtools/zls ' .. zls_dir)
-            end
-
-            local resp_table = vim.json.decode(string.len(zls_resp) > 0 and zls_resp or '{ "version": "0.14.0-dev.395+43bece5"}')
-            local zls_commit = string.match(resp_table.version, '+%w+$')
-
-            if vim.fn.isdirectory(zls_dir .. zls_bin) == false then
-              os.execute('cd ' .. zls_dir .. ' && git checkout ' .. string.sub(zls_commit, 2))
-              os.execute('cd ' .. zls_dir .. ' && zig build -Doptimize=ReleaseSafe')
-              print('ZLS compiled for Zig version: ' .. zig_version)
-            end
-
-            os.execute('cp ' .. zls_dir .. zls_bin .. '*' .. ' ~/.local/share/nvim/mason/bin/')
-          end,
-          settings = {
-            zls = {
-              enable_snippets = true, -- Enable snippet support (if needed)
-              -- Additional settings can be added here
-            },
-          },
-        },
+        zls = require 'zls-config',
       }
 
       -- Ensure the servers and tools above are installed
@@ -757,6 +720,8 @@ require('lazy').setup({
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        --
+        zls = { 'prettier' },
       },
     },
   },
