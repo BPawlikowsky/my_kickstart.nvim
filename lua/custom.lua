@@ -2,6 +2,8 @@ vim.keymap.set({ 'n', 'x' }, 's', '<Nop>')
 vim.bo.tabstop = 4
 vim.opt.relativenumber = true
 
+vim.g.shada = '1000,f1,<500'
+
 vim.g.netrw_liststyle = 3
 
 require('catppuccin').setup {

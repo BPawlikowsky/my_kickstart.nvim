@@ -26,4 +26,17 @@ return {
   { 'loctvl842/monokai-pro.nvim' },
   { 'prichrd/netrw.nvim', opts = {} },
   { 'nvim-tree/nvim-web-devicons', opts = {} },
+  {
+    'rmagatti/auto-session',
+    lazy = false,
+
+    ---enables autocomplete for opts
+    ---@module "auto-session"
+    ---@type AutoSession.Config
+    opts = {
+      suppressed_dirs = { '~/', '~/Projects', '~/Downloads', '/' },
+      -- log_level = 'debug',
+    },
+  },
+  { 'ziglang/zig.vim' },
 }
