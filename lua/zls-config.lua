@@ -1,9 +1,28 @@
-local zls_dir = '/Users/bartsky/dev/tools/zls'
+local zls_dir = os.getenv 'HOME' .. '/dev/tools/zls'
 local zls_bin = '/zig-out/bin/'
 local address = 'https://releases.zigtools.org/v1/zls/select-version?zig_version={version}&compatibility=full'
 local zls_path = zls_dir .. zls_bin .. 'zls'
 local zig_version_file = 'zig_version.txt'
 local zls_commit_file = 'zls_commit.txt'
+
+if vim.fn.isdirectory(zls_dir) then
+  vim.fn.mkdir(zls_dir, 'p')
+end
+
+local function save_json(obj)
+  local file = io.write(obj.project_root .. '/zls.json')
+  if file ~= nil then
+    file:write(vim.json.encode(obj))
+    file:close()
+  end
+end
+
+local zls_json = {
+  version = '',
+  global_cache_dir = os.getenv 'HOME' .. '/.cache/zls/',
+  local_config_dir = '',
+  log_file = '/var/log/zls/zls.log',
+}
 
 local function save_zig_version(zig_version)
   local file = io.open(zls_dir .. '/' .. zig_version_file, 'w')
@@ -54,7 +73,7 @@ end
 
 ---@param zls_commit string
 ---@param zig_version string
----@return table
+---@return table?
 local function compile_zls(zls_commit, zig_version)
   os.execute('cd ' .. zls_dir .. ' && git checkout ' .. zls_commit)
   os.execute('cd ' .. zls_dir .. ' && zig build -Doptimize=ReleaseSafe')
@@ -72,15 +91,17 @@ return {
   filetypes = { 'zig', 'zir' },
   single_file_support = true,
   on_init = function()
+    local lsp_folders = vim.lsp.buf.list_workspace_folders()
+    local project_root = lsp_folders[1] or vim.fn.getcwd()
+
+    zls_json.local_config_dir = project_root
+
     local zig_version = get_zig_version()
     if not vim.fn.isdirectory(zls_dir) then
       os.execute('git clone https://github.com/zigtools/zls ' .. zls_dir)
     end
 
     local zls_resp = get_zls_response(zig_version:gsub('\n', ''))
-    -- if zls response is nil: get last good version from file
-    -- if zls response is non nil: compile the new version
-    --
 
     if isResponseEmpty(zls_resp) then
       local last_zig_version = get_last_good_zig_zls(zig_version_file)
@@ -103,6 +124,8 @@ return {
         compile_zls(last_zls_commit, last_zig_version)
       end
       print 'Reverted to last good zls version successfully'
+      zls_json.version = zig_version
+      save_json(zls_json)
     else
       save_zig_version(zig_version)
       ---@diagnostic disable-next-line
@@ -111,6 +134,8 @@ return {
 
       compile_zls(zls_commit:sub(2), zig_version)
 
+      zls_json.version = zig_version
+      save_json(zls_json)
       print 'Updated zls version successfully'
     end
   end,
